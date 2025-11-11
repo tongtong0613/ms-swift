@@ -95,7 +95,7 @@ class GPTModel(McoreGPTModel):
             scatter_embedding_sequence_parallel=scatter_embedding_sequence_parallel,
             seq_len_interpolation_factor=seq_len_interpolation_factor,
             mtp_block_spec=mtp_block_spec,
-            vp_stage=vp_stage,
+            # vp_stage=vp_stage,
         )
         if config.multi_latent_attention:
             self.rotary_pos_emb = RotaryEmbedding(
@@ -291,7 +291,7 @@ class GPTModel(McoreGPTModel):
                 packed_seq_params=packed_seq_params,
                 sequence_len_offset=sequence_len_offset,
                 **(extra_block_kwargs or {}),
-                **kwargs,
+                # **kwargs,
             )
 
         args = get_args()

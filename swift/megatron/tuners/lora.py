@@ -172,13 +172,18 @@ class LoraParallelLinear(MegatronModule, LoraLayer):
                     **kwargs,
                 )
             else:
-                lora_a = TELinear(
-                    input_size=self.in_features,
-                    output_size=r,
+                # lora_a = TELinear(
+                #     input_size=self.in_features,
+                #     output_size=r,
+                #     bias=lora_bias,
+                #     parallel_mode=None,
+                #     skip_weight_param_allocation=False,
+                #     **kwargs)
+                lora_a = nn.Linear(
+                    in_features=self.in_features,
+                    out_features=r,
                     bias=lora_bias,
-                    parallel_mode=None,
-                    skip_weight_param_allocation=False,
-                    **kwargs)
+                )
                 lora_b = TEColumnParallelLinear(
                     input_size=r,
                     output_size=out_features,
@@ -186,14 +191,14 @@ class LoraParallelLinear(MegatronModule, LoraLayer):
                     gather_output=False,
                     **kwargs,
                 )
-                lora_b.parallel_mode = self.base_layer.parallel_mode  # fix moe_shared_expert_overlap
+                # lora_b.parallel_mode = self.base_layer.parallel_mode  # fix moe_shared_expert_overlap
         # https://github.com/NVIDIA/Megatron-LM/blob/main/megatron/core/transformer/moe/shared_experts.py#L93
-        for lora in [lora_a, lora_b]:
-            if isinstance(lora, (TERowParallelLinear, TEColumnParallelLinear)) and lora.parallel_mode is None:
-                lora.ub_overlap_rs_fprop = False
-                lora.ub_overlap_ag_dgrad = False
-                lora.ub_overlap_ag_fprop = False
-                lora.ub_overlap_rs_dgrad = False
+        # for lora in [lora_a, lora_b]:
+        #     if isinstance(lora, (TERowParallelLinear, TEColumnParallelLinear)) and lora.parallel_mode is None:
+        #         lora.ub_overlap_rs_fprop = False
+        #         lora.ub_overlap_ag_dgrad = False
+        #         lora.ub_overlap_ag_fprop = False
+        #         lora.ub_overlap_rs_dgrad = False
         lora_a.sequence_parallel = False
         lora_b.sequence_parallel = False
         self.lora_A[adapter_name] = lora_a
@@ -284,8 +289,10 @@ class LoraParallelLinear(MegatronModule, LoraLayer):
                 self.base_layer.return_layernorm_output = False
                 result, bias = self.base_layer(x, *args, **kwargs)
             else:
-                self.base_layer.return_layernorm_output = True
-                (result, x), bias = self.base_layer(x, *args, **kwargs)
+                # self.base_layer.return_layernorm_output = True
+                self.base_layer.return_layernorm_output = False
+                # (result, x), bias = self.base_layer(x, *args, **kwargs)
+                result, bias = self.base_layer(x, *args, **kwargs)
         elif isinstance(self.base_layer, (TELinear, TEGroupedLinear)):
             result, bias = self.base_layer(x, *args, **kwargs)
         elif isinstance(self.base_layer, TopKRouter):

@@ -10,6 +10,7 @@ from typing import List, Optional, Tuple
 
 import peft
 import torch
+import mindspeed.megatron_adaptor
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging import version
@@ -652,7 +653,7 @@ def _patch_mrope():
                 rotary_interleaved=rotary_interleaved,
                 multi_latent_attention=multi_latent_attention,
                 mscale=mscale,
-                cp_group=cp_group,
+                # cp_group=cp_group,
             )
         if cp_group is None:
             raise ValueError('cp_group must be provided for THD format RoPE')
@@ -669,6 +670,20 @@ def _patch_mrope():
 
 
 def _patch_megatron():
+    try:
+        from mindspeed.megatron_adaptor import repatch
+    except ImportError:
+        repatch = None
+    override_transformer_config = {
+        "recompute_granularity": None,
+        "recompute_modules": ["core_attn"],
+        "recompute_method": None,
+        "recompute_num_layers": None,
+    }
+
+    if repatch is not None:
+        repatch(override_transformer_config)
+
     logging_level = logging.root.level
     _patch_flash_attn()
     _patch_transformer_engine()
