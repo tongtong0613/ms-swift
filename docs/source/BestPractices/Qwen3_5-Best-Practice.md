@@ -105,7 +105,8 @@ Qwen3.5的bbox输出采用归一化1000的相对坐标。你可以使用 ms-swif
 
 ### Dense模型
 
-以下提供对Qwen3.5-4B模型的微调脚本，该示例脚本仅作为演示用途。训练显存为 4 * 20GiB，训练时间为12分钟。由于GatedDeltaNet不支持packing/padding_free，因此我们使用group_by_length参数来加速训练，保证DP的负载均衡并减少micro batch中的零填充，但这会导致loss曲线跳动（因数据随机不充分），当然你也可以去掉此参数。
+以下提供对Qwen3.5-4B模型的微调脚本，该示例脚本仅作为演示用途。训练显存为 4 * 20GiB，训练时间为12分钟。由于transformers的GatedDeltaNet不支持packing/padding_free（megatron支持，见下文），因此我们使用group_by_length参数来加速训练，保证DP的负载均衡并减少micro batch中的零填充，但这会导致loss曲线跳动（因数据随机不充分），当然你也可以去掉此参数。
+
 对模型进行微调的脚本如下：
 
 ```shell
@@ -305,11 +306,13 @@ swift infer \
     --load_data_args true
 ```
 
+Megatron-SWIFT训练Qwen3.5的提示：
 - 全参数训练：参考[这个例子](https://github.com/modelscope/ms-swift/tree/main/examples/models/qwen3_5/mcore_full.sh)。
 - 关于MTP训练：ms-swift暂不支持多模态MTP的训练。如果你只训练纯文本数据，请设置`SKIP_MULTIMODAL_MTP_VALIDATION=1`环境变量，忽略检查。
 - TP 限制解除：使用 "megatron-core>=0.16" 可解除 TP 受到的 `num_query_groups` 限制。
 - 默认 `GatedDeltaNet` 使用 transformers 实现（为保证稳定性，暂时保持默认行为不变）。使用 "megatron-core>=0.16"并设置环境变量 `SWIFT_USE_MCORE_GDN=1`可切换至 mcore 实现，支持 GDN 的 TP 并降低显存。
 - padding_free/packing的支持：packing可以提升训练速度，你需要设置`SWIFT_USE_MCORE_GDN=1`环境变量。参考[这个例子](https://github.com/modelscope/ms-swift/tree/main/examples/models/qwen3_5/packing.sh)。
+- apply_wd_to_qk_layernorm：对 qk layernorm 应用权重衰减。默认为False。
 
 
 ## 强化学习（RL）
